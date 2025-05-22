@@ -10,29 +10,21 @@
 
 #include "sat/sat_solver_factory.h"
 
-#include "sat/cadical.h"
-#include "sat/cryptominisat.h"
-#include "sat/kissat.h"
-
 namespace bzla::sat {
+
+std::function<SatSolver*(void)> ExternalSatSolver::new_sat_solver;
+
+SatSolver*
+new_default_sat_solver()
+{
+  return ExternalSatSolver::new_sat_solver();
+}
 
 SatSolver*
 new_sat_solver(const option::Options& options)
 {
   (void) options;
-#ifdef BZLA_USE_KISSAT
-  if (options.sat_solver() == option::SatSolver::KISSAT)
-  {
-    return new Kissat();
-  }
-#endif
-#ifdef BZLA_USE_CMS
-  if (options.sat_solver() == option::SatSolver::CRYPTOMINISAT)
-  {
-    return new CryptoMiniSat(options.nthreads());
-  }
-#endif
-  return new Cadical();
+  return new_default_sat_solver();
 }
 
 }  // namespace bzla::sat

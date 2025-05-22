@@ -15,7 +15,7 @@
 #include "env.h"
 #include "node/node_manager.h"
 #include "node/node_ref_vector.h"
-#include "sat/cadical.h"
+#include "sat/sat_solver_factory.h"
 
 namespace bzla::preprocess::pass {
 
@@ -74,7 +74,7 @@ PassSkeletonPreproc::apply(AssertionVector& assertions)
   // Reset SAT solver if assertions were popped
   if (d_reset())
   {
-    d_sat_solver.reset(new sat::Cadical());
+    d_sat_solver.reset(bzla::sat::new_default_sat_solver());
     d_encode_cache.clear();
     d_reset = false;
     ++d_stats.num_resets;
@@ -127,7 +127,7 @@ PassSkeletonPreproc::apply(AssertionVector& assertions)
   }
 
   d_done = true;
-  d_sat_solver.reset(new sat::Cadical());
+  d_sat_solver.reset(bzla::sat::new_default_sat_solver());
   d_encode_cache.clear();
 }
 

@@ -29,13 +29,13 @@ endif
 # Subproject dependencies
 
 # CaDiCaL does not provide pkg-config to find dependency
-cadical_dep = cpp_compiler.find_library('cadical',
-                                        has_headers: 'cadical.hpp',
-                                        static: build_static,
-                                        required: false)
-if not cadical_dep.found()
-  cadical_dep = dependency('cadical', required: true)
-endif
+#cadical_dep = cpp_compiler.find_library('cadical',
+#                                        has_headers: 'cadical.hpp',
+#                                        static: build_static,
+#                                        required: false)
+#if not cadical_dep.found()
+#  cadical_dep = dependency('cadical', required: true)
+#endif
 
 cms_dep = dependency('cryptominisat5',
                      version: '5.11.21',
@@ -43,27 +43,28 @@ cms_dep = dependency('cryptominisat5',
                      required: get_option('cryptominisat'))
 
 # Kissat does not provide pkg-config to find dependency
-kissat_dep = cpp_compiler.find_library('kissat',
-                                        has_headers: 'kissat.h',
-                                        static: build_static,
-                                        required: false)
-if not kissat_dep.found()
-  kissat_dep = dependency('kissat', required: get_option('kissat'))
-endif
+#kissat_dep = cpp_compiler.find_library('kissat',
+#                                        has_headers: 'kissat.h',
+#                                        static: build_static,
+#                                        required: false)
+#if not kissat_dep.found()
+#  kissat_dep = dependency('kissat', required: get_option('kissat'))
+#endif
 
 # Using system include type suppresses compile warnings originating from the
 # symfpu headers
 symfpu_dep = dependency('symfpu', include_type: 'system', required: true)
 
-dependencies = [symfpu_dep, cadical_dep, cms_dep, kissat_dep, gmp_dep]
+# dependencies = [symfpu_dep, cadical_dep, cms_dep, kissat_dep, gmp_dep]
+dependencies = [symfpu_dep, cms_dep, gmp_dep]
 
 cpp_args = []
 if cms_dep.found()
   cpp_args += ['-DBZLA_USE_CMS']
 endif
-if kissat_dep.found()
-  cpp_args += ['-DBZLA_USE_KISSAT']
-endif
+#if kissat_dep.found()
+#  cpp_args += ['-DBZLA_USE_KISSAT']
+#endif
 
 # ---
 # Additional build definitions
@@ -95,9 +96,9 @@ license_text += \
 if cms_dep.found()
   license_text += '\n\n  CryptoMiniSat\n  https://github.com/msoos/cryptominisat'
 endif
-if kissat_dep.found()
-  license_text += '\n\n  Kissat\n  https://github.com/arminbiere/kissat'
-endif
+#if kissat_dep.found()
+#  license_text += '\n\n  Kissat\n  https://github.com/arminbiere/kissat'
+#endif
 license_text += '\n\n  SymFPU\n  https://github.com/martin-cs/symfpu'
 license_text = license_text.replace('\n', '\\n').replace('"', '\\"')
 
@@ -213,9 +214,7 @@ sources = files([
   'rewrite/rewrites_core.cpp',
   'rewrite/rewrites_fp.cpp',
   'resource_terminator.cpp',
-  'sat/cadical.cpp',
   'sat/cryptominisat.cpp',
-  'sat/kissat.cpp',
   'sat/sat_solver_factory.cpp',
   'solver/array/array_solver.cpp',
   'solver/abstract/abstraction_lemmas.cpp',

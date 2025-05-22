@@ -12,8 +12,9 @@
 #define BZLA_SAT_SAT_SOLVER_FACTORY_H_INCLUDED
 
 #include <functional>
-#include "option/option.h"
-#include "sat/sat_solver.h"
+
+#include "option.h"
+#include "sat_solver.h"
 
 namespace bzla::sat {
 struct ExternalSatSolver {
