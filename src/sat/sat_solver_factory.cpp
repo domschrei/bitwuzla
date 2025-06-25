@@ -27,4 +27,23 @@ new_sat_solver(const option::Options& options)
   return new_default_sat_solver();
 }
 
+bool
+has_sat_solver_terminator_support(const option::Options& options)
+{
+  (void) options;
+#ifdef BZLA_USE_KISSAT
+  if (options.sat_solver() == option::SatSolver::KISSAT)
+  {
+    return false;
+  }
+#endif
+#ifdef BZLA_USE_CMS
+  if (options.sat_solver() == option::SatSolver::CRYPTOMINISAT)
+  {
+    return false;
+  }
+#endif
+  return true;
+}
+
 }  // namespace bzla::sat

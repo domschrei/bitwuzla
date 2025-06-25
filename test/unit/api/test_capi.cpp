@@ -5039,7 +5039,10 @@ TEST_F(TestCApi, terms)
         break;
 
       case BITWUZLA_KIND_FP_FP: {
-        std::vector<BitwuzlaTerm> args = {d_bv_const1, bv_args[0], bv_args[1]};
+        std::vector<BitwuzlaTerm> args = {
+            d_bv_const1,
+            bitwuzla_mk_const(d_tm, bitwuzla_mk_bv_sort(d_tm, 5), nullptr),
+            bitwuzla_mk_const(d_tm, bitwuzla_mk_bv_sort(d_tm, 10), nullptr)};
         term = bitwuzla_mk_term(d_tm, kind, args.size(), args.data());
         break;
       }
@@ -5640,35 +5643,37 @@ TEST_F(TestCApi, terminate)
     bitwuzla_delete(bitwuzla);
   }
 #ifdef BZLA_USE_CMS
-  // no terminator support in CryptoMiniSat, but this will still terminate in
-  // the PP (as the terminator immediately terminates the execution on the
-  // first call to terminate)
+  // No terminator support in CryptoMiniSat, so configuring the terminator
+  // will already throw even though this would terminate in the PP (as the
+  // terminator immediately would terminate the execution on the first call to
+  // terminate).
   {
     BitwuzlaOptions *opts = bitwuzla_options_new();
     bitwuzla_set_option(opts, BITWUZLA_OPT_REWRITE_LEVEL, 0);
     bitwuzla_set_option_mode(opts, BITWUZLA_OPT_BV_SOLVER, "bitblast");
     bitwuzla_set_option_mode(opts, BITWUZLA_OPT_SAT_SOLVER, "cms");
     Bitwuzla *bitwuzla = bitwuzla_new(d_tm, opts);
-    bitwuzla_set_termination_callback(bitwuzla, test_terminate1, nullptr);
-    bitwuzla_assert(bitwuzla, b);
-    ASSERT_EQ(bitwuzla_check_sat(bitwuzla), BITWUZLA_UNKNOWN);
+    ASSERT_DEATH(
+        bitwuzla_set_termination_callback(bitwuzla, test_terminate1, nullptr),
+        "terminator not supported in configured SAT solver");
     bitwuzla_options_delete(opts);
     bitwuzla_delete(bitwuzla);
   }
 #endif
 #ifdef BZLA_USE_KISSAT
-  // no terminator support in Kissat, but this will still terminate in
-  // the PP (as the terminator immediately terminates the execution on the
-  // first call to terminate)
+  // No terminator support in Kissat, so configuring the terminator
+  // will already throw even though this would terminate in the PP (as the
+  // terminator immediately would terminate the execution on the first call to
+  // terminate).
   {
     BitwuzlaOptions *opts = bitwuzla_options_new();
     bitwuzla_set_option(opts, BITWUZLA_OPT_REWRITE_LEVEL, 0);
     bitwuzla_set_option_mode(opts, BITWUZLA_OPT_BV_SOLVER, "bitblast");
     bitwuzla_set_option_mode(opts, BITWUZLA_OPT_SAT_SOLVER, "kissat");
     Bitwuzla *bitwuzla = bitwuzla_new(d_tm, opts);
-    bitwuzla_set_termination_callback(bitwuzla, test_terminate1, nullptr);
-    bitwuzla_assert(bitwuzla, b);
-    ASSERT_EQ(bitwuzla_check_sat(bitwuzla), BITWUZLA_UNKNOWN);
+    ASSERT_DEATH(
+        bitwuzla_set_termination_callback(bitwuzla, test_terminate1, nullptr),
+        "terminator not supported in configured SAT solver");
     bitwuzla_options_delete(opts);
     bitwuzla_delete(bitwuzla);
   }

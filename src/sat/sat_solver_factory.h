@@ -20,8 +20,11 @@ struct ExternalSatSolver {
     static std::function<SatSolver*(void)> new_sat_solver;
 };
 
+/** Create new SAT solver instance. */
 SatSolver* new_sat_solver(const option::Options& options);
 SatSolver* new_default_sat_solver();
+/** Determine if configured SAT solver has terminator support. */
+bool has_sat_solver_terminator_support(const option::Options& options);
 }
 
 #endif

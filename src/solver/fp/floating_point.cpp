@@ -27,6 +27,7 @@
 
 #include "node/node_manager.h"
 #include "solver/fp/symfpu_wrapper.h"
+#include "util/gmp_utils.h"
 
 template <bool T>
 class SymFpuSymBV;
@@ -260,7 +261,7 @@ FloatingPoint::str(uint8_t bv_format) const
   assert(bv_format == 2 || bv_format == 10);
   std::stringstream ss;
   BitVector sign, exp, sig;
-  FloatingPoint::ieee_bv_as_bvs(d_size->get_type(), as_bv(), sign, exp, sig);
+  FloatingPoint::ieee_bv_as_bvs(d_size->type(), as_bv(), sign, exp, sig);
   ss << "(fp ";
   if (bv_format == 2)
   {
@@ -302,68 +303,37 @@ FloatingPoint::to_real_str() const
     return "0.0";
   }
 
-  assert(size_exp < 64 && size_sig < 64);
-
   BitVector bv_sign, bv_exp, bv_sig;
   FloatingPoint::ieee_bv_as_bvs(
-      d_size->get_type(), as_bv(), bv_sign, bv_exp, bv_sig);
+      d_size->type(), as_bv(), bv_sign, bv_exp, bv_sig);
 
   UnpackedFloat *uf  = unpacked();
   const auto &uf_exp = uf->getExponent();
   const auto &uf_sig = uf->getSignificand();
-  mpz_t gmp_exp;
-  mpz_init(gmp_exp);
-  const BitVector &uf_exp_bv = uf_exp.getBv();
-  if (uf_exp_bv.msb())
-  {
-    mpz_init_set_ui(gmp_exp,
-                    uf_exp_bv.bvnot()
-                        .ibvadd(bzla::BitVector::mk_one(uf_exp_bv.size()))
-                        .to_uint64());
-    mpz_neg(gmp_exp, gmp_exp);
-  }
-  else
-  {
-    mpz_set_ui(gmp_exp, uf_exp_bv.to_uint64());
-  }
-  mpz_sub_ui(gmp_exp, gmp_exp, size_sig - 1);
-  mpz_t gmp_sig;
-  mpz_init_set_ui(gmp_sig, uf_sig.getBv().to_uint64());
+
+  const BitVector &exp = uf_exp.getBv();
+  mpz_class gmp_exp(exp.msb() ? -exp.bvneg().to_mpz() : exp.to_mpz());
+  gmp_exp -= util::uint64_to_mpz_class(size_sig - 1);
+
+  mpz_class gmp_sig = uf_sig.getBv().to_mpz();
   if (bv_sign.is_one())
   {
-    mpz_neg(gmp_sig, gmp_sig);
+    gmp_sig = -gmp_sig;
   }
 
-  std::string res;
-  if (mpz_cmp_ui(gmp_exp, 0) >= 0)
+  mpz_class one(1);
+  mpq_class q_res;
+  if (gmp_exp >= 0)
   {
-    mpz_mul_2exp(gmp_sig, gmp_sig, mpz_get_ui(gmp_exp));
-    mpq_t gmp_res;
-    mpq_init(gmp_res);
-    mpq_set_z(gmp_res, gmp_sig);
-    mpq_canonicalize(gmp_res);
-    res = mpq_get_str(0, 10, gmp_res);
-    mpz_clear(gmp_exp);
-    mpz_clear(gmp_sig);
-    mpq_clear(gmp_res);
+    q_res = gmp_sig * (one << gmp_exp.get_ui());
   }
   else
   {
-    mpz_t gmp_q;
-    mpz_init_set_ui(gmp_q, 1);
-    mpz_neg(gmp_exp, gmp_exp);
-    mpz_mul_2exp(gmp_q, gmp_q, mpz_get_ui(gmp_exp));
-    mpq_t gmp_res;
-    mpq_init(gmp_res);
-    mpq_set_num(gmp_res, gmp_sig);
-    mpq_set_den(gmp_res, gmp_q);
-    mpq_canonicalize(gmp_res);
-    res = mpq_get_str(0, 10, gmp_res);
-    mpz_clear(gmp_exp);
-    mpz_clear(gmp_sig);
-    mpz_clear(gmp_q);
-    mpq_clear(gmp_res);
+    gmp_exp = -gmp_exp;
+    q_res   = mpq_class(gmp_sig, one << gmp_exp.get_ui());
   }
+  q_res.canonicalize();
+  std::string res = q_res.get_str(10);
   if (res.find('/') == std::string::npos && res.find('.') == std::string::npos)
   {
     res += ".0";
@@ -371,43 +341,26 @@ FloatingPoint::to_real_str() const
   return res;
 }
 
-int32_t
-FloatingPoint::compare(const FloatingPoint &fp) const
-{
-  UnpackedFloat *uf_a = d_uf.get();
-  UnpackedFloat *uf_b = fp.unpacked();
-
-  const BitVector &exp_a = uf_a->getExponent().getBv();
-  const BitVector &sig_a = uf_a->getSignificand().getBv();
-
-  const BitVector &exp_b = uf_b->getExponent().getBv();
-  const BitVector &sig_b = uf_b->getSignificand().getBv();
-
-  if (exp_a.size() != exp_b.size() || sig_a.size() != sig_b.size())
-  {
-    return -1;
-  }
-
-  if (uf_a->getNaN() == uf_b->getNaN() && uf_a->getInf() == uf_b->getInf()
-      && uf_a->getZero() == uf_b->getZero()
-      && uf_a->getSign() == uf_b->getSign() && exp_a.compare(exp_b) == 0
-      && sig_a.compare(sig_b) == 0)
-  {
-    return 0;
-  }
-  return -1;
-}
-
 bool
 FloatingPoint::operator==(const FloatingPoint &other) const
 {
-  return compare(other) == 0;
+  UnpackedFloat *uf_a = d_uf.get();
+  UnpackedFloat *uf_b = other.unpacked();
+  if (uf_a->getNaN() == uf_b->getNaN() && uf_a->getInf() == uf_b->getInf()
+      && uf_a->getZero() == uf_b->getZero()
+      && uf_a->getSign() == uf_b->getSign()
+      && uf_a->getExponent().getBv() == uf_b->getExponent().getBv()
+      && uf_a->getSignificand().getBv() == uf_b->getSignificand().getBv())
+  {
+    return true;
+  }
+  return false;
 }
 
 bool
 FloatingPoint::operator!=(const FloatingPoint &other) const
 {
-  return compare(other) != 0;
+  return !(*this == other);
 }
 
 UnpackedFloat *
@@ -585,7 +538,7 @@ FloatingPoint::as_bv() const
   return symfpu::pack(*d_size, *d_uf).getBv();
 }
 
-/* --- Floating private ----------------------------------------------------- */
+/* --- FloatingPoint private ------------------------------------------------ */
 
 FloatingPoint
 FloatingPoint::from_unpacked(NodeManager &nm,
@@ -884,6 +837,15 @@ FloatingPoint::convert_from_rational_aux(NodeManager &nm,
   return res;
 }
 
+/* -------------------------------------------------------------------------- */
+
+std::ostream &
+operator<<(std::ostream &out, const FloatingPoint &fp)
+{
+  out << fp.str();
+  return out;
+}
+
 /* --- FloatingPointTypeInfo public ----------------------------------------- */
 
 FloatingPointTypeInfo::FloatingPointTypeInfo(const Type &type)
@@ -910,7 +872,7 @@ FloatingPointTypeInfo::FloatingPointTypeInfo(const FloatingPointTypeInfo &other)
 FloatingPointTypeInfo::~FloatingPointTypeInfo() {}
 
 const Type &
-FloatingPointTypeInfo::get_type(void) const
+FloatingPointTypeInfo::type() const
 {
   return d_type;
 }
@@ -928,14 +890,7 @@ operator<<(std::ostream &out, const FloatingPointTypeInfo &type)
   return out;
 }
 
-/* --- Other ---------------------------------------------------------------- */
-
-std::ostream &
-operator<<(std::ostream &out, const FloatingPoint &fp)
-{
-  out << fp.str();
-  return out;
-}
+/* -------------------------------------------------------------------------- */
 
 }  // namespace bzla
 

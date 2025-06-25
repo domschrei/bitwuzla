@@ -132,7 +132,7 @@ if meson.is_cross_build() and host_machine.system() == 'windows'
   env += ['WINEDEBUG=fixme-all']
 endif
 
-cpp_args = ['-fno-access-control']
+cpp_args = ['-fno-access-control', '-DBZLA_ENABLE_UNIT_TESTING']
 if cms_dep.found()
   cpp_args += ['-DBZLA_USE_CMS']
 endif

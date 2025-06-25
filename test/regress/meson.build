@@ -55,6 +55,8 @@ tests_smt2 = [
   ['parser/echo.smt2'],
   ['parser/issue59-1.smt2'],
   ['parser/issue59-2.smt2'],
+  ['parser/issue59-3.smt2'],
+  ['parser/issue59-4.smt2'],
   ['parser/issue66.smt2'],
   ['parser/issue169.smt2'],
   ['parser/issue175.smt2'],
@@ -280,6 +282,7 @@ tests_smt2 = [
   ['parser/smt2perr214.smt2'],
   ['parser/smt2perr215.smt2'],
   ['parser/smt2perr216.smt2'],
+  ['parser/smt2perr217.smt2'],
   #['preprocess/array/nondestr_subst1.smt2'], # TODO slow
   ['preprocess/array/nondestr_subst10.smt2', ['--print-model']],
   ['preprocess/array/nondestr_subst11.smt2'],
