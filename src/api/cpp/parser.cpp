@@ -66,6 +66,12 @@ Parser::configure_auto_print_model(bool value)
 }
 
 void
+Parser::configure_terminator(bitwuzla::Terminator* t)
+{
+  d_parser->configure_terminator(t);
+}
+
+void
 Parser::parse(const std::string &infile_name,
               std::istream &input,
               bool parse_only)

@@ -12,6 +12,7 @@
 #define BITWUZLA_API_CPP_PARSER_H_INCLUDED
 
 #include <bitwuzla/cpp/bitwuzla.h>
+#include <bitwuzla/cpp/sat_solver.h>
 
 #include <memory>
 
@@ -83,6 +84,9 @@ class Parser
    * @param value True to enable auto printing of the model.
    */
   void configure_auto_print_model(bool value);
+
+  void configure_terminator(bitwuzla::Terminator* t);
+
   /**
    * Parse input, either from a file or from a string.
    * @param input      The name of the input file if `parse_file` is true,
